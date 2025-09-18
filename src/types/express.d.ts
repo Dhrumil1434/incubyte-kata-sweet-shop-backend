@@ -1,14 +1,10 @@
-declare global {
-  namespace Express {
-    interface UserContext {
-      id: string;
-      role?: string;
-    }
+import { Request } from 'express';
 
-    interface Request {
-      user?: UserContext;
-    }
-  }
+export interface UserContext {
+  id: string;
+  role: string;
 }
 
-export {};
+export interface AuthRequest extends Request {
+  user: UserContext; // not optional here
+}
