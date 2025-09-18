@@ -1,8 +1,25 @@
 import { db } from '../../../db/mysql.db';
 import { sweets, categories } from '../../../schema';
-import { ISweetCreate, ISweetUpdate } from './sweet.zod';
+import { buildPagination, buildSort } from '../../../utils/repository.util';
+import {
+  ISweetListQuery,
+  ISweetSearchQuery,
+  ISweetCreate,
+  ISweetUpdate,
+} from './sweet.zod';
 import { ROLES } from '../../../common/constants';
-import { and, eq, like, SQL, isNull, gte, lte, gt } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  like,
+  SQL,
+  isNull,
+  desc,
+  asc,
+  gte,
+  lte,
+  gt,
+} from 'drizzle-orm';
 
 export class SweetRepository {
   private table = sweets;
@@ -247,6 +264,276 @@ export class SweetRepository {
   ): Promise<boolean> {
     const sweet = await this.findById(id, userRole);
     return !!sweet;
+  }
+
+  /**
+   * List sweets with pagination, filtering, and sorting
+   * @param query - Query parameters
+   * @param userRole - User role to determine data visibility
+   */
+  async list(query: ISweetListQuery, userRole: string = ROLES.CUSTOMER) {
+    const {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      name,
+      category,
+      minPrice,
+      maxPrice,
+      inStock,
+      includeDeleted,
+    } = query;
+
+    // Build pagination
+    const { limit: safeLimit, offset } = buildPagination({
+      page: page || 1,
+      limit: limit || 20,
+    });
+
+    // Build sorting
+    const orderBy = buildSort(this.table, sortBy, sortOrder);
+
+    // Build role-based where clause
+    const whereClause = this.buildRoleBasedWhere(
+      {
+        name: name || undefined,
+        categoryName: category || undefined,
+        minPrice,
+        maxPrice,
+        inStock,
+        includeDeleted,
+      },
+      userRole
+    );
+
+    // Execute queries in parallel
+    const [items, totalResult] = await Promise.all([
+      // Get paginated items with category info
+      db
+        .select({
+          id: this.table.id,
+          name: this.table.name,
+          categoryId: this.table.categoryId,
+          price: this.table.price,
+          quantity: this.table.quantity,
+          isActive: this.table.isActive,
+          createdAt: this.table.createdAt,
+          updatedAt: this.table.updatedAt,
+          deletedAt: this.table.deletedAt,
+          category: {
+            id: this.categoryTable.id,
+            name: this.categoryTable.name,
+          },
+        })
+        .from(this.table)
+        .leftJoin(
+          this.categoryTable,
+          eq(this.table.categoryId, this.categoryTable.id)
+        )
+        .where(whereClause)
+        .orderBy(orderBy || desc(this.table.createdAt))
+        .limit(safeLimit)
+        .offset(offset),
+
+      // Get total count
+      db
+        .select({ count: this.table.id })
+        .from(this.table)
+        .leftJoin(
+          this.categoryTable,
+          eq(this.table.categoryId, this.categoryTable.id)
+        )
+        .where(whereClause),
+    ]);
+
+    const total = totalResult.length;
+
+    return {
+      items,
+      total,
+      pagination: {
+        page: page || 1,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  /**
+   * Search sweets with pagination, filtering, and sorting
+   * @param query - Search query parameters
+   * @param userRole - User role to determine data visibility
+   */
+  async search(query: ISweetSearchQuery, userRole: string = ROLES.CUSTOMER) {
+    const { q, category, minPrice, maxPrice, inStock } = query;
+
+    // Build role-based where clause for search
+    const whereClause = this.buildRoleBasedWhere(
+      {
+        search: q,
+        categoryName: category || undefined,
+        minPrice,
+        maxPrice,
+        inStock,
+      },
+      userRole
+    );
+
+    // Execute search query
+    const items = await db
+      .select({
+        id: this.table.id,
+        name: this.table.name,
+        categoryId: this.table.categoryId,
+        price: this.table.price,
+        quantity: this.table.quantity,
+        isActive: this.table.isActive,
+        createdAt: this.table.createdAt,
+        updatedAt: this.table.updatedAt,
+        deletedAt: this.table.deletedAt,
+        category: {
+          id: this.categoryTable.id,
+          name: this.categoryTable.name,
+        },
+      })
+      .from(this.table)
+      .leftJoin(
+        this.categoryTable,
+        eq(this.table.categoryId, this.categoryTable.id)
+      )
+      .where(whereClause)
+      .orderBy(desc(this.table.createdAt))
+      .limit(50); // Limit search results to 50
+
+    return items;
+  }
+
+  /**
+   * Get sweets by category with pagination
+   * @param categoryId - Category ID
+   * @param query - Query parameters
+   * @param userRole - User role to determine data visibility
+   */
+  async getSweetsByCategory(
+    categoryId: number,
+    query: ISweetListQuery,
+    userRole: string = ROLES.CUSTOMER
+  ) {
+    const {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      name,
+      minPrice,
+      maxPrice,
+      inStock,
+      includeDeleted,
+    } = query;
+
+    // Build pagination
+    const { limit: safeLimit, offset } = buildPagination({
+      page: page || 1,
+      limit: limit || 20,
+    });
+
+    // Build sorting
+    const orderBy = buildSort(this.table, sortBy, sortOrder);
+
+    // Build role-based where clause with category filter
+    const whereClause = this.buildRoleBasedWhere(
+      {
+        categoryId,
+        name: name || undefined,
+        minPrice,
+        maxPrice,
+        inStock,
+        includeDeleted,
+      },
+      userRole
+    );
+
+    // Execute queries in parallel
+    const [items, totalResult] = await Promise.all([
+      // Get paginated items with category info
+      db
+        .select({
+          id: this.table.id,
+          name: this.table.name,
+          categoryId: this.table.categoryId,
+          price: this.table.price,
+          quantity: this.table.quantity,
+          isActive: this.table.isActive,
+          createdAt: this.table.createdAt,
+          updatedAt: this.table.updatedAt,
+          deletedAt: this.table.deletedAt,
+          category: {
+            id: this.categoryTable.id,
+            name: this.categoryTable.name,
+          },
+        })
+        .from(this.table)
+        .leftJoin(
+          this.categoryTable,
+          eq(this.table.categoryId, this.categoryTable.id)
+        )
+        .where(whereClause)
+        .orderBy(orderBy || desc(this.table.createdAt))
+        .limit(safeLimit)
+        .offset(offset),
+
+      // Get total count
+      db
+        .select({ count: this.table.id })
+        .from(this.table)
+        .leftJoin(
+          this.categoryTable,
+          eq(this.table.categoryId, this.categoryTable.id)
+        )
+        .where(whereClause),
+    ]);
+
+    const total = totalResult.length;
+
+    return {
+      items,
+      total,
+      pagination: {
+        page: page || 1,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  /**
+   * Get active sweets only (for dropdowns, etc.)
+   * @param userRole - User role
+   */
+  async getActiveSweets(userRole: string = ROLES.CUSTOMER) {
+    const whereClause = this.buildRoleBasedWhere({ isActive: true }, userRole);
+
+    return db
+      .select({
+        id: this.table.id,
+        name: this.table.name,
+        price: this.table.price,
+        quantity: this.table.quantity,
+        category: {
+          id: this.categoryTable.id,
+          name: this.categoryTable.name,
+        },
+      })
+      .from(this.table)
+      .leftJoin(
+        this.categoryTable,
+        eq(this.table.categoryId, this.categoryTable.id)
+      )
+      .where(whereClause)
+      .orderBy(asc(this.table.name));
   }
 }
 
