@@ -5,6 +5,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 import cookieParser from 'cookie-parser';
+import { userRouter } from './routes';
 
 class App {
   public app: Application;
@@ -43,6 +44,7 @@ class App {
     this.app.get('/', (_req: Request, res: Response) => {
       res.send('API is running!');
     });
+    this.app.use('/api/auth/user', userRouter);
     // Add more routes here or import from separate files
   }
 
