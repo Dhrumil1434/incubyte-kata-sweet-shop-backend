@@ -1,11 +1,13 @@
 import dotenv from 'dotenv';
+dotenv.config();
+
 import app from './app';
 import { validateEnv } from '@utils-core';
-import connectDB from 'db';
-dotenv.config();
+import { db, poolConnection } from './db/mysql.db';
+
 validateEnv([
   'PORT',
-  'MONGO_URI',
+  'DATABASE_URL',
   'ACCESS_TOKEN_SECRET',
   'REFRESH_TOKEN_SECRET',
   'NODE_ENV',
@@ -13,12 +15,23 @@ validateEnv([
 
 const PORT = process.env['PORT'] || 3000;
 
-connectDB()
-  .then(() => {
+async function bootstrap() {
+  try {
+    const conn = await poolConnection.getConnection();
+    await conn.ping();
+    console.log('✅ MySQL connection established.');
+    conn.release();
+
+    app.locals['db'] = db;
+    app.locals['pool'] = poolConnection;
+
     app.listen(PORT, () => {
-      console.log(`⚙️ Server is running at: http://localhost:${PORT}`);
+      console.log(`⚙️ Server running at http://localhost:${PORT}`);
     });
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection failed!', err);
-  });
+  } catch (error) {
+    console.error('❌ Failed to connect to MySQL:', error);
+    process.exit(1);
+  }
+}
+
+bootstrap();
