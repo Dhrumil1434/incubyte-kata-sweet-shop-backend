@@ -30,8 +30,15 @@ export class UserRepository {
     passwordHash: string;
     role: 'customer' | 'admin';
   }) {
-    const [created] = await db.insert(users).values(input);
-    return created;
+    const result: any = await db.insert(users).values(input);
+    const insertId: number | undefined = result?.insertId;
+    if (!insertId) return null;
+    const [row] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, insertId))
+      .limit(1);
+    return row ?? null;
   }
 
   // Get a single user by unique email
