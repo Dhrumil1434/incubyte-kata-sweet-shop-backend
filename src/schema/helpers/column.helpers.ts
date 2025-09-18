@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { boolean, timestamp } from 'drizzle-orm/mysql-core';
+import { boolean, timestamp, datetime } from 'drizzle-orm/mysql-core';
 
 // Common column helpers to be reused across tables
 export const timestamps = {
@@ -11,5 +11,5 @@ export const timestamps = {
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`)
     .onUpdateNow(),
-  deletedAt: timestamp('deleted_at', { mode: 'string' }).default(sql`NULL`),
+  deletedAt: datetime('deleted_at', { mode: 'string' }),
 };
