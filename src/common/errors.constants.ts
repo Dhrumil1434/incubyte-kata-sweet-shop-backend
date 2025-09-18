@@ -10,6 +10,7 @@ export const STATUS = {
   BAD_REQUEST: StatusCodes.BAD_REQUEST,
   CONFLICT: StatusCodes.CONFLICT,
   NOT_FOUND: StatusCodes.NOT_FOUND,
+  UNAUTHORIZED: StatusCodes.UNAUTHORIZED,
   INTERNAL_SERVER_ERROR: StatusCodes.INTERNAL_SERVER_ERROR,
 } as const;
 
