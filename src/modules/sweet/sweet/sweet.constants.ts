@@ -7,11 +7,19 @@ export const sweetZodMessage = {
   PRICE_POSITIVE: 'Price must be a positive number',
   PRICE_MAX: 'Price must be less than 999999.99',
   QUANTITY_REQUIRED: 'Quantity is required',
-  QUANTITY_NON_NEGATIVE: 'Quantity must be a non-negative number',
-  QUANTITY_MAX: 'Quantity must be less than 999999',
-  CATEGORY_ID_REQUIRED: 'Category ID is required',
-  CATEGORY_ID_POSITIVE: 'Category ID must be a positive number',
+  QUANTITY_NON_NEGATIVE: 'Quantity must be 0 or greater',
+  QUANTITY_MAX: 'Quantity must be less than 1000000',
+  CATEGORY_NAME_REQUIRED: 'Category name is required',
+  CATEGORY_NAME_MIN: 'Category name must be at least 1 character',
+  CATEGORY_NAME_MAX: 'Category name must be 255 characters or fewer',
   UPDATE_AT_LEAST_ONE: 'At least one field must be provided',
+} as const;
+
+export const sweetZodLimits = {
+  PRICE_MAX: 999999.99,
+  QUANTITY_MAX: 999999,
+  PURCHASE_QUANTITY_MAX: 1000,
+  RESTOCK_QUANTITY_MAX: 10000,
 } as const;
 
 export const sweetApiMessage = {
@@ -20,8 +28,7 @@ export const sweetApiMessage = {
   FETCHED: 'Sweets fetched successfully',
   NOT_FOUND: 'Sweet not found',
   NAME_EXISTS: 'Sweet name already exists',
-  DELETED: 'Sweet deleted successfully',
-  PURCHASED: 'Sweet purchased successfully',
-  RESTOCKED: 'Sweet restocked successfully',
   INSUFFICIENT_STOCK: 'Insufficient stock available',
+  PURCHASE_SUCCESS: 'Sweet purchased successfully',
+  RESTOCK_SUCCESS: 'Sweet restocked successfully',
 } as const;
