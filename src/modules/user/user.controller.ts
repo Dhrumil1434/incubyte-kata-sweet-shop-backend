@@ -1,6 +1,6 @@
-import { ApiResponse, asyncHandler } from '@utils-core';
+import { ApiResponse, asyncHandler, setAuthCookies } from '@utils-core';
 import { Request, Response } from 'express';
-import { registerSchema, userResponseSchema } from './user.zod';
+import { loginSchema, registerSchema, userResponseSchema } from './user.zod';
 import { ensureUniqueEmail } from './user.validators';
 import { UserService } from './user.sevice';
 import { StatusCodes } from 'http-status-codes';
@@ -18,6 +18,20 @@ export class UserController {
       StatusCodes.CREATED,
       safeUser,
       userApiMessage.REGISTERED
+    );
+    res.status(response.statusCode).json(response);
+  });
+
+  // login function
+  static loginUser = asyncHandler(async (req: Request, res: Response) => {
+    const loginBody = loginSchema.parse(req.body);
+    const { user, accessToken, refreshToken } =
+      await UserService.loginUser(loginBody);
+    setAuthCookies(res, accessToken, refreshToken);
+    const response = new ApiResponse(
+      StatusCodes.OK,
+      { user, accessToken, refreshToken },
+      userApiMessage.LOGGED_IN
     );
     res.status(response.statusCode).json(response);
   });
