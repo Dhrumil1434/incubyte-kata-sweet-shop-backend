@@ -11,4 +11,5 @@ export const timestamps = {
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`)
     .onUpdateNow(),
+  deletedAt: timestamp('deleted_at', { mode: 'string' }),
 };
