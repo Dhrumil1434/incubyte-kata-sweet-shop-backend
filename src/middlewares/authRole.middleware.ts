@@ -1,4 +1,4 @@
-import { NextFunction, Response } from 'express';
+import { NextFunction, Response, Request } from 'express';
 import { ApiError } from '../utils/apiError.util';
 import {
   ACTIONS,
@@ -6,12 +6,12 @@ import {
   ERROR_MESSAGES,
   STATUS,
 } from '../common/errors.constants';
-import { AuthRequest } from 'types/express';
+import { AuthRequest } from '../types/express';
 
 // Usage: router.post('/admin', authenticateJwt, authRole(['admin']), handler)
 export function authRole(allowed: ReadonlyArray<string>) {
-  return (req: AuthRequest, _res: Response, next: NextFunction) => {
-    const user = req.user;
+  return (req: Request, _res: Response, next: NextFunction) => {
+    const user = (req as AuthRequest).user;
     if (!user) {
       return next(
         new ApiError(
