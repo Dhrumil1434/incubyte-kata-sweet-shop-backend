@@ -31,9 +31,18 @@ export class UserRepository {
     role: 'customer' | 'admin';
   }) {
     await db.insert(users).values(input);
-    // MySQL doesn't support RETURNING reliably; fetch by unique field after insert
+    // Fetch only public fields (omit passwordHash)
     const [row] = await db
-      .select()
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        deletedAt: users.deletedAt,
+      })
       .from(users)
       .where(eq(users.email, input.email))
       .limit(1);
@@ -129,7 +138,7 @@ export class UserRepository {
   async softDelete(id: number) {
     const res = await db
       .update(users)
-      .set({ is_active: false, deletedAt: new Date().toISOString() as any })
+      .set({ isActive: false, deletedAt: new Date().toISOString() as any })
       .where(eq(users.id, id));
     return res;
   }
