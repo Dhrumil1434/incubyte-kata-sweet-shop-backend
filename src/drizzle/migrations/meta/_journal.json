@@ -22,6 +22,41 @@
       "when": 1758183236402,
       "tag": "0002_parallel_william_stryker",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1758205798956,
+      "tag": "0003_exotic_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1758206418657,
+      "tag": "0004_ambiguous_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1758206587590,
+      "tag": "0005_handy_maximus",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1758206628783,
+      "tag": "0006_normal_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1758206651865,
+      "tag": "0007_kind_leech",
+      "breakpoints": true
     }
   ]
 }

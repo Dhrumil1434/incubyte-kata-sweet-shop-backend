@@ -4,7 +4,7 @@ import { users } from './users.schema';
 import { sweets } from './sweets.schema';
 
 export const purchases = mysqlTable('purchases', {
-  id: int('id').primaryKey().autoincrement(),
+  id: int('id').autoincrement(),
   userId: int('user_id')
     .notNull()
     .references(() => users.id),
