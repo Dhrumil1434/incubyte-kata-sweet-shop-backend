@@ -6,7 +6,7 @@ import {
   SORT_ORDER,
 } from '../../common/constants';
 import { userZodMessage } from './user.constants';
-import { helperColumnsSchema } from 'common/helpers.zod';
+import { helperColumnsSchema } from '../../common/helpers.zod';
 
 export const roleEnum = z.enum([ROLES.CUSTOMER, ROLES.ADMIN]);
 
