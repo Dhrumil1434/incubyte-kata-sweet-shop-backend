@@ -14,7 +14,7 @@ export class CategoryValidators {
       throw new ApiError(
         ACTIONS.VALIDATION_ERROR,
         STATUS.CONFLICT,
-        ERROR_CODES.EMAIL_ALREADY_IN_USE,
+        ERROR_CODES.CATEGORY_NAME_ALREADY_EXISTS,
         categoryApiMessage.NAME_EXISTS
       );
     }
