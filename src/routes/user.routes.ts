@@ -1,9 +1,10 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { validateBody } from 'middlewares/zodSchema.validator.middleware';
 import { UserController } from 'modules/user/user.controller';
 import { loginSchema, registerSchema } from 'modules/user/user.zod';
 import { authenticateJwt } from '../middlewares/authJwt.middleware';
-import { authRole } from 'middlewares/authRole.middleware';
+import { AuthRequest } from 'types/express';
+import { asyncHandler } from '@utils-core';
 const router = Router();
 router.post(
   '/register',
@@ -11,12 +12,17 @@ router.post(
   UserController.registerUser
 );
 router.post('/login', validateBody(loginSchema), UserController.loginUser);
-router.get('/me', authenticateJwt, authRole(['admin']), (req, res) => {
-  return res.json({
-    statusCode: 200,
-    success: true,
-    data: { user: req.user },
-    message: 'Authenticated',
-  });
-});
+router.get(
+  '/me',
+  authenticateJwt,
+  asyncHandler((req: AuthRequest, res: Response) => {
+    res.json({
+      statusCode: 200,
+      success: true,
+      data: { user: req.user },
+      message: 'Authenticated',
+    });
+  })
+);
+
 export default router;
