@@ -30,13 +30,12 @@ export class UserRepository {
     passwordHash: string;
     role: 'customer' | 'admin';
   }) {
-    const result: any = await db.insert(users).values(input);
-    const insertId: number | undefined = result?.insertId;
-    if (!insertId) return null;
+    await db.insert(users).values(input);
+    // MySQL doesn't support RETURNING reliably; fetch by unique field after insert
     const [row] = await db
       .select()
       .from(users)
-      .where(eq(users.id, insertId))
+      .where(eq(users.email, input.email))
       .limit(1);
     return row ?? null;
   }
