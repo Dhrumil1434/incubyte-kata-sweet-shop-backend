@@ -6,6 +6,7 @@ import {
   SORT_ORDER,
 } from '../../common/constants';
 import { userZodMessage } from './user.constants';
+import { helperColumnsSchema } from 'common/helpers.zod';
 
 export const roleEnum = z.enum([ROLES.CUSTOMER, ROLES.ADMIN]);
 
@@ -60,6 +61,16 @@ export const listUsersQuerySchema = z.object({
     .optional(),
 });
 
+export const userResponseSchema = helperColumnsSchema
+  .extend({
+    id: z.number().int().positive(),
+    name: z.string(),
+    email: z.string().email(),
+    role: z.enum(['customer', 'admin']),
+  })
+  .strict();
+
+export type IUserResponse = z.infer<typeof userResponseSchema>;
 export type IRegisterInput = z.infer<typeof registerSchema>;
 export type ILoginInput = z.infer<typeof loginSchema>;
 export type IUpdateUserInput = z.infer<typeof updateUserSchema>;
