@@ -54,7 +54,7 @@ export class CategoryValidators {
 
   static async validateCategoryUpdate(
     id: number,
-    updateData: { name?: string; isActive?: boolean },
+    updateData: { name?: string | undefined; isActive?: boolean | undefined },
     userRole: string = ROLES.CUSTOMER
   ): Promise<void> {
     await this.ensureCategoryExists(id, userRole);
