@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 export const ACTIONS = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   NOT_FOUND: 'NOT_FOUND',
+  FORBIDDEN: 'FORBIDDEN',
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
 } as const;
 
@@ -11,6 +12,7 @@ export const STATUS = {
   CONFLICT: StatusCodes.CONFLICT,
   NOT_FOUND: StatusCodes.NOT_FOUND,
   UNAUTHORIZED: StatusCodes.UNAUTHORIZED,
+  FORBIDDEN: StatusCodes.FORBIDDEN,
   INTERNAL_SERVER_ERROR: StatusCodes.INTERNAL_SERVER_ERROR,
 } as const;
 
