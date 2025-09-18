@@ -1,13 +1,7 @@
-import { asyncHandler } from '@utils-core';
-import { Request, Router } from 'express';
+import { Router } from 'express';
 import { validateBody } from 'middlewares/zodSchema.validator.middleware';
+import { UserController } from 'modules/user/user.controller';
 import { registerSchema } from 'modules/user/user.zod';
 const router = Router();
-router.post(
-  '/',
-  validateBody(registerSchema),
-  asyncHandler(async (req: Request) => {
-    console.log(req.body);
-  })
-);
+router.post('/', validateBody(registerSchema), UserController.registerUser);
 export default router;
