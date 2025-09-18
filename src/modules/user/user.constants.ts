@@ -13,6 +13,7 @@ export const userZodMessage = {
 
 export const userApiMessage = {
   CREATED: 'User created successfully',
+  REGISTERED: 'User registered successfully !',
   LOGGED_IN: 'Logged in successfully',
   FETCHED: 'Users fetched successfully',
   UPDATED: 'User updated successfully',
