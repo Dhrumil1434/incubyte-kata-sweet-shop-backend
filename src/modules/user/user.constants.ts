@@ -19,6 +19,8 @@ export const userApiMessage = {
   UPDATED: 'User updated successfully',
   DELETED: 'User deleted successfully',
   EMAIL_EXISTS: 'Email already in use',
+  EMAIL_NOT_EXISTS_REGISTER_YOURSELF:
+    'Email is not exists kindly register yourself first',
   NOT_FOUND: 'User not found',
   INVALID_CREDENTIALS: 'Invalid email or password',
   UNAUTHORIZED: 'Unauthorized',
