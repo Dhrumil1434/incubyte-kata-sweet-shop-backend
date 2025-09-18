@@ -1,4 +1,4 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import compression from 'compression';
@@ -40,7 +40,7 @@ class App {
   }
 
   private setRoutes(): void {
-    this.app.get('/', (req: Request, res: Response) => {
+    this.app.get('/', (_req: Request, res: Response) => {
       res.send('API is running!');
     });
     // Add more routes here or import from separate files
