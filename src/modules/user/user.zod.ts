@@ -60,7 +60,7 @@ export const listUsersQuerySchema = z.object({
     .optional(),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
+export type IRegisterInput = z.infer<typeof registerSchema>;
+export type ILoginInput = z.infer<typeof loginSchema>;
+export type IUpdateUserInput = z.infer<typeof updateUserSchema>;
+export type IListUsersQuery = z.infer<typeof listUsersQuerySchema>;
