@@ -1,9 +1,10 @@
 import { ApiError } from '@utils-core';
 import { sweetRepository } from './sweet.repository';
 import { ISweetSelect } from './sweet.zod';
-import { ACTIONS } from 'common/errors.constants';
+import { ACTIONS, STATUS } from 'common/errors.constants';
 import { StatusCodes } from 'http-status-codes';
 import { sweetApiMessage, sweetErrorCode } from './sweet.constants';
+import { IUserResponse } from 'modules/user/user.zod';
 
 export class SweetValidators {
   //first validation function to check the unique ness of the sweet name at application layer
@@ -35,6 +36,21 @@ export class SweetValidators {
           sweetApiMessage.SWEET_NAME_UPDATE_CONFLICT
         );
       }
+    }
+  }
+  // validator to check that sweet exists or not
+  static async ensureSweetExists(
+    id: ISweetSelect['id'],
+    userRole: IUserResponse['role']
+  ) {
+    const sweet = await sweetRepository.existsAndAccessible(id, userRole);
+    if (!sweet) {
+      throw new ApiError(
+        ACTIONS.NOT_FOUND,
+        STATUS.NOT_FOUND,
+        sweetErrorCode.SWEET_NOT_FOUND, // replace with SWEET_NOT_FOUND if you add it
+        sweetApiMessage.NOT_FOUND
+      );
     }
   }
 }
