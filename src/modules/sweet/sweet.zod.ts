@@ -73,10 +73,11 @@ export const sweetCreateSchema = sweetBaseSchema
   })
   .strict();
 
-// Update schema: allow optional fields (omit `id`)
+// Update schema: allow optional fields (omit `id` and `isActive`)
 export const sweetUpdateSchema = sweetBaseSchema
   .omit({
     id: true,
+    isActive: true, // Remove isActive from updates to prevent inconsistency
   })
   .partial() // make all remaining fields optional
   .refine((obj) => Object.keys(obj).length > 0, {

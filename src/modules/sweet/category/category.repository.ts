@@ -93,19 +93,8 @@ export class CategoryRepository {
     // Prepare update data with synchronization logic
     const updateData: any = { ...data, updatedAt: new Date().toISOString() };
 
-    // Synchronization rules:
-    // 1. If isActive is set to false, set deletedAt to null (if it was set)
-    // 2. If isActive is set to true, ensure deletedAt is null
-    // 3. If deletedAt is set, ensure isActive is false
-    if (data.isActive !== undefined) {
-      if (data.isActive === false) {
-        // Deactivating: clear deletedAt if it was set
-        updateData.deletedAt = null;
-      } else if (data.isActive === true) {
-        // Reactivating: ensure deletedAt is null
-        updateData.deletedAt = null;
-      }
-    }
+    // Note: isActive is not allowed in updates to prevent inconsistency
+    // Use softDelete() for deletion and reactivate() for reactivation
 
     await db.update(this.table).set(updateData).where(eq(this.table.id, id));
 

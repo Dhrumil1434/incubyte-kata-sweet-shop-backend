@@ -170,7 +170,7 @@ export class SweetRepository {
   }
 
   /**
-   * Update sweet by ID
+   * Update sweet by ID with field synchronization
    * @param id - Sweet ID
    * @param data - Update data
    */
@@ -186,10 +186,8 @@ export class SweetRepository {
       updateData.price = updateData.price.toString();
     }
 
-    // If reactivating a soft-deleted sweet, clear deletedAt
-    if (updateData.isActive === true && existingRecord.deletedAt) {
-      updateData.deletedAt = null;
-    }
+    // Note: isActive is not allowed in updates to prevent inconsistency
+    // Use softDelete() for deletion and reactivate() for reactivation
 
     await db
       .update(this.table)
@@ -203,6 +201,7 @@ export class SweetRepository {
 
   /**
    * Soft delete sweet by ID
+   * Sets both deletedAt and isActive: false for proper synchronization
    * @param id - Sweet ID
    */
   async softDelete(id: number) {
@@ -221,12 +220,44 @@ export class SweetRepository {
       .update(this.table)
       .set({
         deletedAt: new Date().toISOString(),
-        isActive: false,
+        isActive: false, // Always set to false when soft-deleting
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(this.table.id, id));
 
     // Return the record as it was before deletion
     return existingRecord;
+  }
+
+  /**
+   * Reactivate a soft-deleted sweet
+   * Clears deletedAt and sets isActive: true
+   * @param id - Sweet ID
+   */
+  async reactivate(id: number) {
+    // First check if the record exists (including soft-deleted)
+    const existingRecord = await this.findByIdIncludingDeleted(id);
+    if (!existingRecord) {
+      return null;
+    }
+
+    // Check if it's actually soft-deleted
+    if (!existingRecord.deletedAt) {
+      return null; // Not soft-deleted
+    }
+
+    await db
+      .update(this.table)
+      .set({
+        deletedAt: null, // Clear deletion timestamp
+        isActive: true, // Set as active
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(this.table.id, id));
+
+    // Fetch the reactivated record with category info
+    const result = await this.findByIdIncludingDeleted(id);
+    return result!;
   }
 
   /**

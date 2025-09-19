@@ -1,14 +1,40 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Ensure barrel exports are mocked BEFORE app (route registration) happens
+vi.mock('../src/middlewares', () => ({
+  authenticateJwt: vi.fn((_req: any, _res: any, next: any) => next()),
+  authRole: vi.fn(
+    (_allowed: readonly string[]) => (_req: any, _res: any, next: any) => next()
+  ),
+}));
+
+// Also mock direct middleware modules used by tests
+vi.mock('../src/middlewares/authJwt.middleware', () => ({
+  authenticateJwt: vi.fn((_req: any, _res: any, next: any) => next()),
+}));
+vi.mock('../src/middlewares/authRole.middleware', () => ({
+  authRole: vi.fn(
+    (_allowed: readonly string[]) => (_req: any, _res: any, next: any) => next()
+  ),
+}));
+
 import request from 'supertest';
 import app from '../src/app';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as categoryRepo from '../src/modules/sweet/category/category.repository';
 import * as categoryValidators from '../src/modules/sweet/category/category.validators';
+import { CategoryService } from '../src/modules/sweet/category/category.service';
 import { ROLES } from '../src/common/constants';
 import { authenticateJwt } from '../src/middlewares/authJwt.middleware';
+import { authRole } from '../src/middlewares/authRole.middleware';
 
 // Mock the entire auth middleware
 vi.mock('../src/middlewares/authJwt.middleware', () => ({
   authenticateJwt: vi.fn(),
+}));
+
+// Mock auth role middleware
+vi.mock('../src/middlewares/authRole.middleware', () => ({
+  authRole: vi.fn(),
 }));
 
 // Mock JWT tokens
@@ -44,6 +70,20 @@ describe('Category API Tests', () => {
       (req: any, _res: any, next: any) => {
         req.user = { id: '1', role: ROLES.ADMIN };
         next();
+      }
+    );
+
+    // default authRole to pass (admin routes)
+    vi.mocked(authRole).mockImplementation(
+      (roles: readonly string[]) => (req: any, _res: any, next: any) => {
+        const userRole = req.user?.role || ROLES.CUSTOMER;
+        if (roles.includes(userRole)) {
+          next();
+        } else {
+          const error = new Error('Forbidden');
+          (error as any).status = 403;
+          next(error);
+        }
       }
     );
 
@@ -435,6 +475,108 @@ describe('Category API Tests', () => {
         .query({ page: 1, limit: 10000 }); // Very large limit
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /api/sweet/category/:id/reactivate (admin only)', () => {
+    it('200 - reactivates soft-deleted category as admin', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+      vi.spyOn(CategoryService, 'reactivateCategory').mockResolvedValue({
+        id: 1,
+      } as any);
+
+      const res = await request(app)
+        .post('/api/sweet/category/1/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Category reactivated successfully');
+    });
+
+    it('404 - returns not found for non-existent category', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+      vi.spyOn(CategoryService, 'reactivateCategory').mockRejectedValue(
+        new Error('Category not found')
+      );
+
+      const res = await request(app)
+        .post('/api/sweet/category/999/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(500); // Error handling converts to 500
+    });
+
+    it('401 - returns unauthorized without token', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (_req: any, _res: any, next: any) => {
+          next(new Error('Unauthorized'));
+        }
+      );
+
+      const res = await request(app).post('/api/sweet/category/1/reactivate');
+
+      expect(res.status).toBe(500); // Error handling converts to 500
+    });
+
+    it('403 - returns forbidden for customer role', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '1', role: ROLES.CUSTOMER };
+          next();
+        }
+      );
+      // Override authRole to reject customer role
+      vi.mocked(authRole).mockImplementationOnce(
+        (roles: readonly string[]) => (req: any, _res: any, next: any) => {
+          const userRole = req.user?.role || ROLES.CUSTOMER;
+          if (roles.includes(userRole)) {
+            next();
+          } else {
+            const { ApiError } = require('../src/utils');
+            const error = new ApiError(
+              'FORBIDDEN',
+              403,
+              'INVALID_USER_ROLE',
+              'You are not having the valid role to access this action!'
+            );
+            next(error);
+          }
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweet/category/1/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('400 - returns validation error for invalid ID format', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweet/category/invalid/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
     });
   });
 });

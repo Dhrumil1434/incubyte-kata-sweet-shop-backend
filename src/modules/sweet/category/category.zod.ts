@@ -31,10 +31,11 @@ export const categoryCreateSchema = categoryBaseSchema
   })
   .strict();
 
-// Update schema: allow optional fields (omit `id`)
+// Update schema: allow optional fields (omit `id` and `isActive`)
 export const categoryUpdateSchema = categoryBaseSchema
   .omit({
     id: true,
+    isActive: true, // Remove isActive from updates to prevent inconsistency
   })
   .partial() // make all remaining fields optional
   .refine((obj) => Object.keys(obj).length > 0, {

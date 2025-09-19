@@ -124,4 +124,18 @@ export class SweetController {
     );
     res.status(response.statusCode).json(response);
   });
+
+  static reactivateSweet = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const userRole = req.user?.role || ROLES.CUSTOMER;
+      const id = sweetId.parse(Number(req.params['id']));
+      const reactivated = await SweetService.reactivateSweet(id, userRole);
+      const response = new ApiResponse(
+        StatusCodes.OK,
+        reactivated,
+        'Sweet reactivated successfully'
+      );
+      res.status(response.statusCode).json(response);
+    }
+  );
 }

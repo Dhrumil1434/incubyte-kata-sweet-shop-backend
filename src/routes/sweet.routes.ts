@@ -68,4 +68,13 @@ sweetRouter.delete(
   SweetController.deleteSweet
 );
 
+// POST /api/sweets/:id/reactivate - reactivate soft-deleted sweet (admin only)
+sweetRouter.post(
+  '/:id/reactivate',
+  authenticateJwt,
+  authRole([ROLES.ADMIN]),
+  validateParams(sweetIdParams),
+  SweetController.reactivateSweet
+);
+
 export { sweetRouter };

@@ -60,4 +60,22 @@ export class SweetService {
     }
     return sweetSelectResponseSchema.parse(deleted);
   }
+
+  /**
+   * Reactivate a soft-deleted sweet
+   * @param id - Sweet ID
+   * @param _userRole - User role (admin only)
+   */
+  static async reactivateSweet(id: number, _userRole: string) {
+    const reactivated = await sweetRepository.reactivate(id);
+    if (!reactivated) {
+      throw new ApiError(
+        ACTIONS.NOT_FOUND,
+        STATUS.NOT_FOUND,
+        sweetErrorCode.SWEET_NOT_FOUND,
+        sweetApiMessage.NOT_FOUND
+      );
+    }
+    return sweetSelectResponseSchema.parse(reactivated);
+  }
 }

@@ -1,16 +1,31 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Ensure barrel exports are mocked BEFORE app (route registration) happens
+vi.mock('../src/middlewares', () => ({
+  authenticateJwt: vi.fn((_req: any, _res: any, next: any) => next()),
+  authRole: vi.fn(
+    (_allowed: readonly string[]) => (_req: any, _res: any, next: any) => next()
+  ),
+}));
+
+// Also mock direct middleware modules used by tests
+vi.mock('../src/middlewares/authJwt.middleware', () => ({
+  authenticateJwt: vi.fn((_req: any, _res: any, next: any) => next()),
+}));
+vi.mock('../src/middlewares/authRole.middleware', () => ({
+  authRole: vi.fn(
+    (_allowed: readonly string[]) => (_req: any, _res: any, next: any) => next()
+  ),
+}));
+
 import request from 'supertest';
 import app from '../src/app';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { authenticateJwt } from '../src/middlewares/authJwt.middleware';
+import { authRole } from '../src/middlewares/authRole.middleware';
 import { ROLES } from '../src/common/constants';
 import { SweetService } from '../src/modules/sweet/sweet.service';
 import { SweetValidators } from '../src/modules/sweet/sweet.validator';
 import { CategoryValidators } from '../src/modules/sweet/category/category.validators';
-
-// Mock auth middleware to inject user context
-vi.mock('../src/middlewares/authJwt.middleware', () => ({
-  authenticateJwt: vi.fn(),
-}));
 
 // Mock validators to avoid real pre-validation branching
 vi.mock('../src/modules/sweet/sweet.validator', () => ({
@@ -38,6 +53,24 @@ describe('Sweet API', () => {
       (req: any, _res: any, next: any) => {
         req.user = { id: '1', role: ROLES.CUSTOMER };
         next();
+      }
+    );
+    // default authRole to pass (admin routes)
+    vi.mocked(authRole).mockImplementation(
+      (roles: readonly string[]) => (req: any, _res: any, next: any) => {
+        const userRole = req.user?.role || ROLES.CUSTOMER;
+        if (roles.includes(userRole)) {
+          next();
+        } else {
+          const { ApiError } = require('../src/utils');
+          const error = new ApiError(
+            'FORBIDDEN',
+            403,
+            'INVALID_USER_ROLE',
+            'You are not having the valid role to access this action!'
+          );
+          next(error);
+        }
       }
     );
     // default validators to pass
@@ -148,6 +181,87 @@ describe('Sweet API', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+  });
+
+  describe('POST /api/sweets/:id/reactivate (admin only)', () => {
+    it('200 - reactivates soft-deleted sweet as admin', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+      vi.spyOn(SweetService, 'reactivateSweet').mockResolvedValue({
+        id: 1,
+      } as any);
+
+      const res = await request(app)
+        .post('/api/sweets/1/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Sweet reactivated successfully');
+    });
+
+    it('404 - returns not found for non-existent sweet', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+      vi.spyOn(SweetService, 'reactivateSweet').mockRejectedValue(
+        new Error('Sweet not found')
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/999/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(500); // Error handling converts to 500
+    });
+
+    it('401 - returns unauthorized without token', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (_req: any, _res: any, next: any) => {
+          next(new Error('Unauthorized'));
+        }
+      );
+
+      const res = await request(app).post('/api/sweets/1/reactivate');
+
+      expect(res.status).toBe(500); // Error handling converts to 500
+    });
+
+    it('403 - returns forbidden for customer role', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '1', role: ROLES.CUSTOMER };
+          next();
+        }
+      );
+      // Override authRole to reject customer role
+      vi.mocked(authRole).mockImplementationOnce(
+        (roles: readonly string[]) => (req: any, _res: any, next: any) => {
+          const userRole = req.user?.role || ROLES.CUSTOMER;
+          if (roles.includes(userRole)) {
+            next();
+          } else {
+            const error = new Error('Forbidden');
+            (error as any).status = 403;
+            next(error);
+          }
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/reactivate')
+        .set('Authorization', `Bearer ${mockAccessToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
     });
   });
 });
