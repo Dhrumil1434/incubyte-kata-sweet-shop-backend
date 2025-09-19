@@ -1,7 +1,7 @@
 import { ApiError } from '@utils-core';
 import { sweetRepository } from './sweet.repository';
 import { ISweetSelect } from './sweet.zod';
-import { ACTIONS, STATUS } from 'common/errors.constants';
+import { ACTIONS, STATUS } from '../../common/errors.constants';
 import { StatusCodes } from 'http-status-codes';
 import { sweetApiMessage, sweetErrorCode } from './sweet.constants';
 import { IUserResponse } from 'modules/user/user.zod';
