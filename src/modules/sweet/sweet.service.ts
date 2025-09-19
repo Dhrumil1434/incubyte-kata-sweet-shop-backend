@@ -78,4 +78,55 @@ export class SweetService {
     }
     return sweetSelectResponseSchema.parse(reactivated);
   }
+
+  /**
+   * Purchase a sweet (decrease quantity)
+   * @param id - Sweet ID
+   * @param quantity - Quantity to purchase
+   */
+  static async purchaseSweet(id: number, quantity: number) {
+    try {
+      const updated = await sweetRepository.purchase(id, quantity);
+      if (!updated) {
+        throw new ApiError(
+          ACTIONS.NOT_FOUND,
+          STATUS.NOT_FOUND,
+          sweetErrorCode.SWEET_NOT_FOUND,
+          sweetApiMessage.NOT_FOUND
+        );
+      }
+      return sweetSelectResponseSchema.parse(updated);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Insufficient quantity available'
+      ) {
+        throw new ApiError(
+          ACTIONS.BAD_REQUEST,
+          STATUS.BAD_REQUEST,
+          'INSUFFICIENT_QUANTITY',
+          'Insufficient quantity available for purchase'
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Restock a sweet (increase quantity)
+   * @param id - Sweet ID
+   * @param quantity - Quantity to add
+   */
+  static async restockSweet(id: number, quantity: number) {
+    const updated = await sweetRepository.restock(id, quantity);
+    if (!updated) {
+      throw new ApiError(
+        ACTIONS.NOT_FOUND,
+        STATUS.NOT_FOUND,
+        sweetErrorCode.SWEET_NOT_FOUND,
+        sweetApiMessage.NOT_FOUND
+      );
+    }
+    return sweetSelectResponseSchema.parse(updated);
+  }
 }

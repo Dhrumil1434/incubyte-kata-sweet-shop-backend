@@ -624,6 +624,60 @@ export class SweetRepository {
       .where(whereClause)
       .orderBy(asc(this.table.name));
   }
+
+  /**
+   * Purchase a sweet (decrease quantity)
+   * @param id - Sweet ID
+   * @param quantity - Quantity to purchase
+   */
+  async purchase(id: number, quantity: number) {
+    // First check if the sweet exists and has enough quantity
+    const sweet = await this.findById(id);
+    if (!sweet) {
+      return null;
+    }
+
+    if (sweet.quantity < quantity) {
+      throw new Error('Insufficient quantity available');
+    }
+
+    // Update quantity
+    await db
+      .update(this.table)
+      .set({
+        quantity: sweet.quantity - quantity,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(this.table.id, id));
+
+    // Return updated sweet
+    return await this.findById(id);
+  }
+
+  /**
+   * Restock a sweet (increase quantity)
+   * @param id - Sweet ID
+   * @param quantity - Quantity to add
+   */
+  async restock(id: number, quantity: number) {
+    // First check if the sweet exists
+    const sweet = await this.findById(id);
+    if (!sweet) {
+      return null;
+    }
+
+    // Update quantity
+    await db
+      .update(this.table)
+      .set({
+        quantity: sweet.quantity + quantity,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(this.table.id, id));
+
+    // Return updated sweet
+    return await this.findById(id);
+  }
 }
 
 // Export singleton instance

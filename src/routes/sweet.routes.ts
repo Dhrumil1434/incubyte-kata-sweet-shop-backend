@@ -77,4 +77,23 @@ sweetRouter.post(
   SweetController.reactivateSweet
 );
 
+// POST /api/sweets/:id/purchase - purchase a sweet (any authenticated user)
+sweetRouter.post(
+  '/:id/purchase',
+  authenticateJwt,
+  validateParams(sweetIdParams),
+  validateBody(z.object({ quantity: z.number().int().positive() })),
+  SweetController.purchaseSweet
+);
+
+// POST /api/sweets/:id/restock - restock a sweet (admin only)
+sweetRouter.post(
+  '/:id/restock',
+  authenticateJwt,
+  authRole([ROLES.ADMIN]),
+  validateParams(sweetIdParams),
+  validateBody(z.object({ quantity: z.number().int().positive() })),
+  SweetController.restockSweet
+);
+
 export { sweetRouter };

@@ -15,6 +15,22 @@ import { SweetValidators } from './sweet.validator';
 import { CategoryValidators } from './category/category.validators';
 
 export class SweetController {
+  private static validateQuantity(quantity: any, res: Response): boolean {
+    if (!quantity || quantity <= 0) {
+      res
+        .status(StatusCodes.BAD_REQUEST)
+        .json(
+          new ApiResponse(
+            StatusCodes.BAD_REQUEST,
+            null,
+            'Quantity must be a positive number'
+          )
+        );
+      return false;
+    }
+    return true;
+  }
+
   static listSweets = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role || ROLES.CUSTOMER;
     const queryParams = sweetListQuerySchema.parse(req.query);
@@ -136,6 +152,67 @@ export class SweetController {
         'Sweet reactivated successfully'
       );
       res.status(response.statusCode).json(response);
+    }
+  );
+
+  static purchaseSweet = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res
+          .status(StatusCodes.UNAUTHORIZED)
+          .json(
+            new ApiResponse(
+              StatusCodes.UNAUTHORIZED,
+              null,
+              'User not authenticated'
+            )
+          );
+      }
+
+      const userRole = req.user?.role || ROLES.CUSTOMER;
+      const id = sweetId.parse(Number(req.params['id']));
+      const { quantity } = req.body || {};
+
+      if (!this.validateQuantity(quantity, res)) return;
+
+      // Use the purchase service to create a purchase record and update quantity
+      const { PurchaseService } = await import('../purchase/purchase.service');
+      const purchase = await PurchaseService.createPurchase(
+        { sweetId: id, quantity },
+        Number(userId),
+        userRole
+      );
+
+      return res
+        .status(StatusCodes.CREATED)
+        .json(
+          new ApiResponse(
+            StatusCodes.CREATED,
+            purchase,
+            'Sweet purchased successfully'
+          )
+        );
+    }
+  );
+
+  static restockSweet = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const id = sweetId.parse(Number(req.params['id']));
+      const { quantity } = req.body || {};
+
+      if (!this.validateQuantity(quantity, res)) return;
+
+      const updated = await SweetService.restockSweet(id, quantity);
+      return res
+        .status(StatusCodes.OK)
+        .json(
+          new ApiResponse(
+            StatusCodes.OK,
+            updated,
+            'Sweet restocked successfully'
+          )
+        );
     }
   );
 }
