@@ -25,8 +25,8 @@ export function authRole(allowed: ReadonlyArray<string>) {
     if (!user.role || !allowed.includes(user.role)) {
       return next(
         new ApiError(
-          ACTIONS.VALIDATION_ERROR,
-          STATUS.UNAUTHORIZED,
+          ACTIONS.FORBIDDEN,
+          STATUS.FORBIDDEN,
           ERROR_CODES.INVALID_USER_ROLE,
           ERROR_MESSAGES.INVALID_USER_ROLE
         )

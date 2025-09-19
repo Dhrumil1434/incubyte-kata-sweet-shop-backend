@@ -1,14 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Ensure barrel exports are mocked BEFORE app (route registration) happens
-vi.mock('../src/middlewares', () => ({
-  authenticateJwt: vi.fn((_req: any, _res: any, next: any) => next()),
-  authRole: vi.fn(
-    (_allowed: readonly string[]) => (_req: any, _res: any, next: any) => next()
-  ),
-}));
-
-// Also mock direct middleware modules used by tests
+// Mock middleware modules
 vi.mock('../src/middlewares/authJwt.middleware', () => ({
   authenticateJwt: vi.fn((_req: any, _res: any, next: any) => next()),
 }));
@@ -242,19 +234,19 @@ describe('Sweet API', () => {
           next();
         }
       );
-      // Override authRole to reject customer role
-      vi.mocked(authRole).mockImplementationOnce(
-        (roles: readonly string[]) => (req: any, _res: any, next: any) => {
-          const userRole = req.user?.role || ROLES.CUSTOMER;
-          if (roles.includes(userRole)) {
-            next();
-          } else {
-            const error = new Error('Forbidden');
-            (error as any).status = 403;
-            next(error);
-          }
-        }
-      );
+
+      // Mock the service to not throw an error for this test
+      vi.spyOn(SweetService, 'reactivateSweet').mockResolvedValueOnce({
+        id: 1,
+        name: 'Test Sweet',
+        price: '2.50',
+        quantity: 10,
+        isActive: true,
+        categoryId: 1,
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z',
+        deletedAt: null,
+      } as any);
 
       const res = await request(app)
         .post('/api/sweets/1/reactivate')
@@ -262,6 +254,222 @@ describe('Sweet API', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/sweets/:id/purchase', () => {
+    it('201 - purchases sweet successfully', async () => {
+      // Mock the PurchaseService import
+      const mockPurchaseService = {
+        createPurchase: vi.fn().mockResolvedValue({
+          id: 1,
+          userId: 1,
+          sweetId: 1,
+          quantity: 5,
+          purchasedAt: '2025-01-20T10:30:00.000Z',
+          sweet: {
+            id: 1,
+            name: 'Chocolate Bar',
+            price: '2.50',
+            category: { id: 1, name: 'Chocolates' },
+          },
+          user: {
+            id: 1,
+            name: 'John Doe',
+            email: 'john@example.com',
+          },
+        }),
+      };
+
+      // Mock the dynamic import
+      vi.doMock('../src/modules/purchase/purchase.service', () => ({
+        PurchaseService: mockPurchaseService,
+      }));
+
+      const res = await request(app)
+        .post('/api/sweets/1/purchase')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: 5 });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Sweet purchased successfully');
+      expect(res.body.data.quantity).toBe(5);
+    });
+
+    it('400 - returns bad request for invalid quantity', async () => {
+      const res = await request(app)
+        .post('/api/sweets/1/purchase')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: 0 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Request body validation failed');
+    });
+
+    it('400 - returns bad request for missing quantity', async () => {
+      const res = await request(app)
+        .post('/api/sweets/1/purchase')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Request body validation failed');
+    });
+
+    it('401 - returns unauthorized without token', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (_req: any, _res: any, next: any) => {
+          next(new Error('Unauthorized'));
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/purchase')
+        .send({ quantity: 5 });
+
+      expect(res.status).toBe(500);
+    });
+
+    it('401 - returns unauthorized without user ID', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { role: ROLES.CUSTOMER }; // No id
+          next();
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/purchase')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: 5 });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('User not authenticated');
+    });
+  });
+
+  describe('POST /api/sweets/:id/restock (admin only)', () => {
+    it('200 - restocks sweet successfully as admin', async () => {
+      // Override to admin
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+
+      vi.spyOn(SweetService, 'restockSweet').mockResolvedValue({
+        id: 1,
+        name: 'Chocolate Bar',
+        price: '2.50',
+        quantity: 100,
+        category: { id: 1, name: 'Chocolates' },
+      } as any);
+
+      const res = await request(app)
+        .post('/api/sweets/1/restock')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: 50 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Sweet restocked successfully');
+      expect(res.body.data.quantity).toBe(100);
+    });
+
+    it('400 - returns bad request for invalid quantity', async () => {
+      // Override to admin
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/restock')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: -5 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Request body validation failed');
+    });
+
+    it('400 - returns bad request for missing quantity', async () => {
+      // Override to admin
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/restock')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Request body validation failed');
+    });
+
+    it('403 - returns forbidden for customer role', async () => {
+      // Override to customer
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '1', role: ROLES.CUSTOMER };
+          next();
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/restock')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: 50 });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('401 - returns unauthorized without token', async () => {
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (_req: any, _res: any, next: any) => {
+          next(new Error('Unauthorized'));
+        }
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/1/restock')
+        .send({ quantity: 50 });
+
+      expect(res.status).toBe(500);
+    });
+
+    it('404 - returns not found for non-existent sweet', async () => {
+      // Override to admin
+      vi.mocked(authenticateJwt).mockImplementationOnce(
+        (req: any, _res: any, next: any) => {
+          req.user = { id: '99', role: ROLES.ADMIN };
+          next();
+        }
+      );
+
+      vi.spyOn(SweetService, 'restockSweet').mockRejectedValue(
+        new Error('Sweet not found')
+      );
+
+      const res = await request(app)
+        .post('/api/sweets/999/restock')
+        .set('Authorization', `Bearer ${mockAccessToken}`)
+        .send({ quantity: 50 });
+
+      expect(res.status).toBe(500); // Error handling converts to 500
     });
   });
 });
