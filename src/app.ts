@@ -5,7 +5,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 import cookieParser from 'cookie-parser';
-import { categoryRouter, userRouter } from './routes';
+import { categoryRouter, userRouter, sweetRouter } from './routes';
 
 class App {
   public app: Application;
@@ -47,6 +47,8 @@ class App {
     this.app.use('/api/auth/user', userRouter);
     // following is the endpoint for the category of the sweet
     this.app.use('/api/sweet/category', categoryRouter);
+    // sweets module
+    this.app.use('/api/sweets', sweetRouter);
     // Add more routes here or import from separate files
   }
 
