@@ -11,6 +11,7 @@ import { ROLES } from '../../common/constants';
 import {
   and,
   eq,
+  ne,
   like,
   SQL,
   isNull,
@@ -31,9 +32,13 @@ export class SweetRepository {
    * @param excludeId - Optional ID to exclude from check (for updates)
    */
   async isNameTaken(name: string, excludeId?: number): Promise<boolean> {
-    const conditions = [eq(this.table.name, name)];
+    const conditions = [
+      eq(this.table.name, name),
+      isNull(this.table.deletedAt), // Only check active records
+    ];
+
     if (excludeId) {
-      conditions.push(eq(this.table.id, excludeId));
+      conditions.push(ne(this.table.id, excludeId)); // Exclude the current record
     }
 
     const result = await db
@@ -75,6 +80,38 @@ export class SweetRepository {
         eq(this.table.categoryId, this.categoryTable.id)
       )
       .where(whereClause)
+      .limit(1);
+
+    return result[0] || null;
+  }
+
+  /**
+   * Find sweet by ID including soft-deleted records (admin only)
+   * @param id - Sweet ID
+   */
+  async findByIdIncludingDeleted(id: number) {
+    const result = await db
+      .select({
+        id: this.table.id,
+        name: this.table.name,
+        categoryId: this.table.categoryId,
+        price: this.table.price,
+        quantity: this.table.quantity,
+        isActive: this.table.isActive,
+        createdAt: this.table.createdAt,
+        updatedAt: this.table.updatedAt,
+        deletedAt: this.table.deletedAt,
+        category: {
+          id: this.categoryTable.id,
+          name: this.categoryTable.name,
+        },
+      })
+      .from(this.table)
+      .leftJoin(
+        this.categoryTable,
+        eq(this.table.categoryId, this.categoryTable.id)
+      )
+      .where(eq(this.table.id, id))
       .limit(1);
 
     return result[0] || null;
@@ -138,9 +175,20 @@ export class SweetRepository {
    * @param data - Update data
    */
   async update(id: number, data: ISweetUpdate) {
+    // First check if the record exists (including soft-deleted)
+    const existingRecord = await this.findByIdIncludingDeleted(id);
+    if (!existingRecord) {
+      return null;
+    }
+
     const updateData = { ...data } as any;
     if (updateData.price !== undefined) {
       updateData.price = updateData.price.toString();
+    }
+
+    // If reactivating a soft-deleted sweet, clear deletedAt
+    if (updateData.isActive === true && existingRecord.deletedAt) {
+      updateData.deletedAt = null;
     }
 
     await db
@@ -149,7 +197,7 @@ export class SweetRepository {
       .where(eq(this.table.id, id));
 
     // Fetch the updated record with category info
-    const result = await this.findById(id);
+    const result = await this.findByIdIncludingDeleted(id);
     return result!;
   }
 

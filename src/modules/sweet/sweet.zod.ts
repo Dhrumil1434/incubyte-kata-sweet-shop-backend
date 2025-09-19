@@ -36,6 +36,7 @@ const sweetBaseSchema = z.object({
   categoryId: categoryId,
   price: sweetPrice,
   quantity: sweetQuantity,
+  isActive: z.boolean().optional(),
 });
 
 // Add helper columns
