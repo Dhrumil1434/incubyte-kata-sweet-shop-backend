@@ -57,6 +57,13 @@
       "when": 1758206651865,
       "tag": "0007_kind_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1758321132427,
+      "tag": "0008_curious_goliath",
+      "breakpoints": true
     }
   ]
 }
