@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 
 export const ACTIONS = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
+  BAD_REQUEST: 'BAD_REQUEST',
   NOT_FOUND: 'NOT_FOUND',
   FORBIDDEN: 'FORBIDDEN',
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
