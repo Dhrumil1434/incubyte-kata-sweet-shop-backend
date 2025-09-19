@@ -158,6 +158,17 @@ export class SweetRepository {
    * @param id - Sweet ID
    */
   async softDelete(id: number) {
+    // First check if the record exists and is not already deleted
+    const existingRecord = await this.findById(id);
+    if (!existingRecord) {
+      return null;
+    }
+
+    // Check if already deleted
+    if (existingRecord.deletedAt) {
+      return null; // Already deleted
+    }
+
     await db
       .update(this.table)
       .set({
@@ -166,9 +177,8 @@ export class SweetRepository {
       })
       .where(eq(this.table.id, id));
 
-    // Fetch the deleted record with category info
-    const result = await this.findById(id);
-    return result!;
+    // Return the record as it was before deletion
+    return existingRecord;
   }
 
   /**

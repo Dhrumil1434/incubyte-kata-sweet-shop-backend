@@ -116,7 +116,6 @@ export class SweetController {
     const userRole =
       req.user?.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.CUSTOMER;
     const id = sweetId.parse(Number(req.params['id']));
-    await SweetValidators.ensureSweetExists(id, userRole);
     const deleted = await SweetService.deleteSweet(id, userRole);
     const response = new ApiResponse(
       StatusCodes.OK,
