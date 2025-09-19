@@ -2,7 +2,6 @@ import { ApiError } from '@utils-core';
 import { sweetRepository } from './sweet.repository';
 import { ISweetSelect } from './sweet.zod';
 import { ACTIONS, STATUS } from '../../common/errors.constants';
-import { StatusCodes } from 'http-status-codes';
 import { sweetApiMessage, sweetErrorCode } from './sweet.constants';
 import { IUserResponse } from 'modules/user/user.zod';
 
@@ -11,10 +10,10 @@ export class SweetValidators {
   static async isSweetAlreadyExistByName(name: ISweetSelect['name']) {
     const taken = await sweetRepository.isNameTaken(name);
 
-    if (!taken) {
+    if (taken) {
       throw new ApiError(
         ACTIONS.VALIDATION_ERROR,
-        StatusCodes.CONFLICT,
+        STATUS.CONFLICT,
         sweetErrorCode.SWEET_NAME_CONFLICT,
         sweetApiMessage.SWEET_NAME_CONFLICT
       );
@@ -27,15 +26,13 @@ export class SweetValidators {
   ) {
     const taken = await sweetRepository.isNameTaken(name, excludeId);
 
-    if (!taken) {
-      if (!taken) {
-        throw new ApiError(
-          ACTIONS.VALIDATION_ERROR,
-          StatusCodes.CONFLICT,
-          sweetErrorCode.SWEET_NAME_UPDATE_CONFLICT,
-          sweetApiMessage.SWEET_NAME_UPDATE_CONFLICT
-        );
-      }
+    if (taken) {
+      throw new ApiError(
+        ACTIONS.VALIDATION_ERROR,
+        STATUS.CONFLICT,
+        sweetErrorCode.SWEET_NAME_UPDATE_CONFLICT,
+        sweetApiMessage.SWEET_NAME_UPDATE_CONFLICT
+      );
     }
   }
   // validator to check that sweet exists or not
