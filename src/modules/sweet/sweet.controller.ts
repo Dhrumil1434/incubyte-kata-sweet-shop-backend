@@ -82,7 +82,7 @@ export class SweetController {
   static updateSweet = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role || ROLES.CUSTOMER;
     const updatedData = sweetUpdateSchema.parse(req.body);
-    const updatingSweetId = sweetId.parse(req.query);
+    const updatingSweetId = sweetId.parse(Number(req.params['id']));
     if (updatedData.name !== undefined) {
       await SweetValidators.isSweetAlreadyExistBeforeUpdate(
         updatedData.name,
