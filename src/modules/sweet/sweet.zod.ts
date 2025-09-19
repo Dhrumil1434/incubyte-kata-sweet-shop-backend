@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { helperColumnsSchema } from '../../../common/helpers.zod';
+import { helperColumnsSchema } from '../../common/helpers.zod';
 import { sweetZodMessage, sweetZodLimits } from './sweet.constants';
 import { buildBaseQuerySchema } from 'modules/common/query.zod';
 import { createPaginatedResponseSchema } from 'modules/common/pagination.zod';

@@ -1,13 +1,13 @@
-import { db } from '../../../db/mysql.db';
-import { sweets, categories } from '../../../schema';
-import { buildPagination, buildSort } from '../../../utils/repository.util';
+import { db } from '../../db/mysql.db';
+import { sweets, categories } from '../../schema';
+import { buildPagination, buildSort } from '../../utils/repository.util';
 import {
   ISweetListQuery,
   ISweetSearchQuery,
   ISweetCreate,
   ISweetUpdate,
 } from './sweet.zod';
-import { ROLES } from '../../../common/constants';
+import { ROLES } from '../../common/constants';
 import {
   and,
   eq,
