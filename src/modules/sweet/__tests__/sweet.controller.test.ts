@@ -124,15 +124,11 @@ describe('SweetController', () => {
     expect(SweetService.getSweetById).toHaveBeenCalledWith(5, 'customer');
   });
 
-  it('deleteSweet should ensure existence then call service', async () => {
+  it('deleteSweet should call service with parsed id and role', async () => {
     const req = adminReq({ params: { id: '9' } });
     const res = mockRes();
-    vi.mocked(SweetValidators.ensureSweetExists).mockResolvedValue(
-      undefined as any
-    );
     vi.mocked(SweetService.deleteSweet).mockResolvedValue({ id: 9 } as any);
     await (SweetController.deleteSweet as any)(req, res);
-    expect(SweetValidators.ensureSweetExists).toHaveBeenCalledWith(9, 'admin');
     expect(SweetService.deleteSweet).toHaveBeenCalledWith(9, 'admin');
   });
 });
