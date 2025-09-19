@@ -4,12 +4,21 @@ import { asyncHandler, ApiResponse } from '../../utils';
 import { StatusCodes } from 'http-status-codes';
 import { ROLES } from '../../common/constants';
 import { AuthRequest } from '../../types/express';
+import {
+  sweetCreateSchema,
+  sweetId,
+  sweetListQuerySchema,
+  sweetSearchSchema,
+  sweetUpdateSchema,
+} from './sweet.zod';
+import { SweetValidators } from './sweet.validator';
+import { CategoryValidators } from './category/category.validators';
 
 export class SweetController {
   static listSweets = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role || ROLES.CUSTOMER;
-    const result = await SweetService.listSweets(req.query as any, userRole);
-
+    const queryParams = sweetListQuerySchema.parse(req.query);
+    const result = await SweetService.listSweets(queryParams, userRole);
     const response = new ApiResponse(
       StatusCodes.OK,
       result,
@@ -21,8 +30,8 @@ export class SweetController {
   static searchSweets = asyncHandler(
     async (req: AuthRequest, res: Response) => {
       const userRole = req.user?.role || ROLES.CUSTOMER;
-      const items = await SweetService.searchSweets(req.query as any, userRole);
-
+      const searchQuery = sweetSearchSchema.parse(req.query);
+      const items = await SweetService.searchSweets(searchQuery, userRole);
       const response = new ApiResponse(
         StatusCodes.OK,
         items,
@@ -34,7 +43,10 @@ export class SweetController {
 
   static getSweetById = asyncHandler(
     async (req: AuthRequest, res: Response) => {
-      const userRole = req.user?.role || ROLES.CUSTOMER;
+      const userRole =
+        req.user?.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.CUSTOMER;
+      const id = sweetId.parse(Number(req.params['id']));
+      await SweetValidators.ensureSweetExists(id, userRole);
       const sweet = await SweetService.getSweetById(
         Number(req.params['id']),
         userRole
@@ -50,7 +62,14 @@ export class SweetController {
   );
 
   static createSweet = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const userRole = req.user?.role || ROLES.CUSTOMER;
+    const userRole = req.user?.role || ROLES.ADMIN;
+    const data = sweetCreateSchema.parse(req.body);
+    // here we have to first check about the exists by name
+    await SweetValidators.isSweetAlreadyExistByName(data.name);
+    // we would check that if category is active or not
+    await CategoryValidators.ensureCategoryActive(data.categoryId, userRole);
+    // we have to check that category which is entered is exists or not
+    await CategoryValidators.ensureCategoryExists(data.categoryId, userRole);
     const created = await SweetService.createSweet(req.body, userRole);
     const response = new ApiResponse(
       StatusCodes.CREATED,
@@ -62,9 +81,27 @@ export class SweetController {
 
   static updateSweet = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role || ROLES.CUSTOMER;
+    const updatedData = sweetUpdateSchema.parse(req.body);
+    const updatingSweetId = sweetId.parse(req.query);
+    if (updatedData.name !== undefined) {
+      await SweetValidators.isSweetAlreadyExistBeforeUpdate(
+        updatedData.name,
+        updatingSweetId
+      );
+    }
+    if (updatedData.categoryId !== undefined) {
+      await CategoryValidators.ensureCategoryActive(
+        updatedData.categoryId,
+        userRole
+      );
+      await CategoryValidators.ensureCategoryExists(
+        updatedData.categoryId,
+        userRole
+      );
+    }
     const updated = await SweetService.updateSweet(
       Number(req.params['id']),
-      req.body,
+      updatedData,
       userRole
     );
     const response = new ApiResponse(
@@ -76,11 +113,11 @@ export class SweetController {
   });
 
   static deleteSweet = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const userRole = req.user?.role || ROLES.CUSTOMER;
-    const deleted = await SweetService.deleteSweet(
-      Number(req.params['id']),
-      userRole
-    );
+    const userRole =
+      req.user?.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.CUSTOMER;
+    const id = sweetId.parse(Number(req.params['id']));
+    await SweetValidators.ensureSweetExists(id, userRole);
+    const deleted = await SweetService.deleteSweet(id, userRole);
     const response = new ApiResponse(
       StatusCodes.OK,
       deleted,
