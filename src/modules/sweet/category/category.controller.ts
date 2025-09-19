@@ -140,4 +140,27 @@ export class CategoryController {
       res.status(response.statusCode).json(response);
     }
   );
+
+  /**
+   * POST /api/categories/:id/reactivate - Reactivate soft-deleted category (Admin only)
+   */
+  static reactivateCategory = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const { id } = req.params;
+      const userRole = req.user.role;
+
+      const category = await CategoryService.reactivateCategory(
+        Number(id),
+        userRole
+      );
+
+      const response = new ApiResponse(
+        StatusCodes.OK,
+        category,
+        'Category reactivated successfully'
+      );
+
+      res.status(response.statusCode).json(response);
+    }
+  );
 }

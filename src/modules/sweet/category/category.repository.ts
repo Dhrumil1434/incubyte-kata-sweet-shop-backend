@@ -79,15 +79,35 @@ export class CategoryRepository {
   }
 
   /**
-   * Update category by ID
+   * Update category by ID with field synchronization
    * @param id - Category ID
    * @param data - Update data
    */
   async update(id: number, data: ICategoryUpdate) {
-    await db
-      .update(this.table)
-      .set({ ...data, updatedAt: new Date().toISOString() })
-      .where(eq(this.table.id, id));
+    // Get current category state
+    const currentCategory = await this.findById(id);
+    if (!currentCategory) {
+      throw new Error('Category not found');
+    }
+
+    // Prepare update data with synchronization logic
+    const updateData: any = { ...data, updatedAt: new Date().toISOString() };
+
+    // Synchronization rules:
+    // 1. If isActive is set to false, set deletedAt to null (if it was set)
+    // 2. If isActive is set to true, ensure deletedAt is null
+    // 3. If deletedAt is set, ensure isActive is false
+    if (data.isActive !== undefined) {
+      if (data.isActive === false) {
+        // Deactivating: clear deletedAt if it was set
+        updateData.deletedAt = null;
+      } else if (data.isActive === true) {
+        // Reactivating: ensure deletedAt is null
+        updateData.deletedAt = null;
+      }
+    }
+
+    await db.update(this.table).set(updateData).where(eq(this.table.id, id));
 
     // Fetch the updated record
     const result = await this.findById(id);
@@ -96,6 +116,7 @@ export class CategoryRepository {
 
   /**
    * Soft delete category by ID
+   * Sets both deletedAt and isActive: false for proper synchronization
    * @param id - Category ID
    */
   async softDelete(id: number) {
@@ -103,11 +124,32 @@ export class CategoryRepository {
       .update(this.table)
       .set({
         deletedAt: new Date().toISOString(),
-        isActive: false,
+        isActive: false, // Always set to false when soft-deleting
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(this.table.id, id));
 
     // Fetch the deleted record
+    const result = await this.findById(id);
+    return result!;
+  }
+
+  /**
+   * Reactivate a soft-deleted category
+   * Clears deletedAt and sets isActive: true
+   * @param id - Category ID
+   */
+  async reactivate(id: number) {
+    await db
+      .update(this.table)
+      .set({
+        deletedAt: null, // Clear deletion timestamp
+        isActive: true, // Set as active
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(this.table.id, id));
+
+    // Fetch the reactivated record
     const result = await this.findById(id);
     return result!;
   }

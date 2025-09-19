@@ -62,4 +62,12 @@ categoryRouter.delete(
   CategoryController.deleteCategory
 );
 
+categoryRouter.post(
+  '/:id/reactivate',
+  authenticateJwt,
+  authRole([ROLES.ADMIN]), // Only admin can reactivate
+  validateParams(categoryIdSchema), // Validates ID parameter
+  CategoryController.reactivateCategory
+);
+
 export { categoryRouter };

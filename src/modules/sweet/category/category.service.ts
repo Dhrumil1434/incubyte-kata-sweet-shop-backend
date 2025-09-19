@@ -94,6 +94,21 @@ export class CategoryService {
   }
 
   /**
+   * Reactivate a soft-deleted category
+   * @param id - Category ID
+   * @param userRole - User role (admin only)
+   */
+  static async reactivateCategory(id: number, userRole: string) {
+    // Validate reactivation using validators
+    await CategoryValidators.validateCategoryDeletion(id, userRole); // Reuse deletion validation
+
+    // Reactivate category
+    const reactivated = await categoryRepository.reactivate(id);
+
+    return categorySelectSchema.parse(reactivated);
+  }
+
+  /**
    * Check if category exists and is accessible
    * @param id - Category ID
    * @param userRole - User role
