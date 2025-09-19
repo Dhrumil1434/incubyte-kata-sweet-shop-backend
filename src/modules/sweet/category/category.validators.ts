@@ -29,7 +29,7 @@ export class CategoryValidators {
       throw new ApiError(
         ACTIONS.NOT_FOUND,
         STATUS.NOT_FOUND,
-        ERROR_CODES.USER_NOT_FOUND,
+        ERROR_CODES.CATEGORY_NOT_FOUND,
         categoryApiMessage.NOT_FOUND
       );
     }
@@ -44,7 +44,7 @@ export class CategoryValidators {
       throw new ApiError(
         ACTIONS.NOT_FOUND,
         STATUS.NOT_FOUND,
-        ERROR_CODES.USER_NOT_FOUND,
+        ERROR_CODES.CATEGORY_NOT_FOUND,
         categoryApiMessage.NOT_FOUND
       );
     }
@@ -84,7 +84,7 @@ export class CategoryValidators {
       throw new ApiError(
         ACTIONS.NOT_FOUND,
         STATUS.NOT_FOUND,
-        ERROR_CODES.USER_NOT_FOUND,
+        ERROR_CODES.CATEGORY_NOT_FOUND,
         categoryApiMessage.NOT_FOUND
       );
     }
@@ -108,7 +108,7 @@ export class CategoryValidators {
       throw new ApiError(
         ACTIONS.NOT_FOUND,
         STATUS.NOT_FOUND,
-        ERROR_CODES.USER_NOT_FOUND,
+        ERROR_CODES.CATEGORY_NOT_FOUND,
         categoryApiMessage.NOT_FOUND
       );
     }
