@@ -70,7 +70,7 @@ export class SweetController {
     await CategoryValidators.ensureCategoryActive(data.categoryId, userRole);
     // we have to check that category which is entered is exists or not
     await CategoryValidators.ensureCategoryExists(data.categoryId, userRole);
-    const created = await SweetService.createSweet(req.body, userRole);
+    const created = await SweetService.createSweet(data, userRole);
     const response = new ApiResponse(
       StatusCodes.CREATED,
       created,

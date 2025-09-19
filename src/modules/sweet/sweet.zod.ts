@@ -43,6 +43,25 @@ export const sweetSelectSchema = helperColumnsSchema
   .merge(sweetBaseSchema)
   .strict();
 
+// Response schema: tolerate DB decimal strings and optional joined category
+export const sweetSelectResponseSchema = sweetSelectSchema
+  .extend({
+    price: z
+      .union([z.number(), z.string()])
+      .transform((val) =>
+        typeof val === 'number'
+          ? Math.round(val * 100) / 100
+          : Math.round(Number(val) * 100) / 100
+      ),
+    category: z
+      .object({
+        id: sweetId,
+        name: sweetName,
+      })
+      .optional(),
+  })
+  .strict();
+
 // Create schema: pick only the fields you allow on insert
 export const sweetCreateSchema = sweetBaseSchema
   .pick({
@@ -142,7 +161,7 @@ export const sweetListQuerySchema = buildBaseQuerySchema(sweetSortKeys)
 // Search schema: for searching sweets
 export const sweetSearchSchema = z
   .object({
-    q: z.string().min(1, 'Search query is required').max(255),
+    q: z.string().min(1, 'Search query is required').max(255).optional(),
     category: z
       .string()
       .min(1, 'Category name is required')
@@ -177,13 +196,15 @@ export const sweetSearchSchema = z
   );
 
 // Paginated response schema for sweets
-export const sweetPaginatedResponseSchema =
-  createPaginatedResponseSchema(sweetSelectSchema);
+export const sweetPaginatedResponseSchema = createPaginatedResponseSchema(
+  sweetSelectResponseSchema
+);
 
 // Types
 export type ISweetListQuery = z.infer<typeof sweetListQuerySchema>;
 export type ISweetSearchQuery = z.infer<typeof sweetSearchSchema>;
 export type ISweetSelect = z.infer<typeof sweetSelectSchema>;
+export type ISweetSelectResponse = z.infer<typeof sweetSelectResponseSchema>;
 export type ISweetCreate = z.infer<typeof sweetCreateSchema>;
 export type ISweetUpdate = z.infer<typeof sweetUpdateSchema>;
 export type ISweetPurchase = z.infer<typeof sweetPurchaseSchema>;
