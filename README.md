@@ -10,6 +10,10 @@
 
 A production-ready RESTful API for sweet shop management built with modern TypeScript technologies. Features JWT authentication, role-based authorization, comprehensive validation, and advanced pagination.
 
+## 📸 Screenshots
+
+View project screenshots and demo images: [Google Drive Folder](https://drive.google.com/drive/folders/1itpr1T5V1A4LZzVqNGlI4BimUyOoFKzz?usp=sharing)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
